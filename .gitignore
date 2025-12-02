@@ -85,7 +85,7 @@ node_modules/
 
 # ========== Epilot Scripts Project ========== #
 # Output files
-data/output/*
+data/*
 !data/output/.gitkeep
 
 # End
