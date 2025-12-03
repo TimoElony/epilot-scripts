@@ -58,7 +58,7 @@ async def create_opportunities_from_file(client: EpilotClient, data_file: Path, 
         opportunity_data = {
             "_schema": "opportunity",
             "_title": titel,
-            "status": chance.get('status', 'neu'),
+            "status": chance.get('status', 'ausstehend'),  # Standard-Status: ausstehend, bearbeitung, geschlossen, abgebrochen
             "contact": [{"$relation": [{"entity_id": kunde_id}]}],
             "anschrift": chance.get('anschrift'),
             "typ": chance.get('typ'),
@@ -77,7 +77,7 @@ async def create_opportunities_from_file(client: EpilotClient, data_file: Path, 
             opportunity_id = result.get('_id')
             opportunity_map[titel] = opportunity_id
             
-            status = chance.get('status', 'neu')
+            status = chance.get('status', 'ausstehend')
             typ = chance.get('typ', 'N/A')
             status_count[status] = status_count.get(status, 0) + 1
             
