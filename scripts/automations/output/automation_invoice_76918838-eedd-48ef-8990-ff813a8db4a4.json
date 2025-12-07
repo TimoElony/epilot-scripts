@@ -1,0 +1,78 @@
+{
+  "flow_name": "Tarifabschluss: Erste Rechnung automatisch versenden",
+  "entity_schema": "automation_step",
+  "enabled": true,
+  "triggers": [
+    {
+      "type": "entity_operation",
+      "configuration": {
+        "schema": "automation_step",
+        "operation": [
+          "update"
+        ],
+        "attributes": [
+          "status"
+        ]
+      }
+    }
+  ],
+  "conditions": [
+    {
+      "id": "cond-first-invoice-step",
+      "statements": [
+        {
+          "operation": "equals",
+          "source": {
+            "schema": "automation_step",
+            "attribute": "id"
+          },
+          "values": [
+            "step-first-invoice"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cond-step-done",
+      "statements": [
+        {
+          "operation": "equals",
+          "source": {
+            "schema": "automation_step",
+            "attribute": "status"
+          },
+          "values": [
+            "DONE"
+          ]
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "action-send-invoice-email",
+      "name": "Rechnung per E-Mail versenden",
+      "type": "send-email",
+      "condition_id": "cond-step-done",
+      "config": {
+        "to": [
+          "{{order._relations.contacts.email}}"
+        ],
+        "cc": [
+          "buchhaltung@stadtwerke-wuelfrath.de"
+        ],
+        "subject": "Ihre Rechnung von Stadtwerke W\u00fclfrath - {{order._title}}",
+        "body_html": "\n                    <html>\n                    <head>\n                        <style>\n                            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n                            .header { background-color: #0066cc; color: white; padding: 20px; text-align: center; }\n                            .content { padding: 20px; }\n                            .invoice-box { border: 1px solid #ddd; padding: 15px; margin: 20px 0; background-color: #f9f9f9; }\n                            .invoice-details { margin: 15px 0; }\n                            .invoice-details table { width: 100%; border-collapse: collapse; }\n                            .invoice-details th, .invoice-details td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }\n                            .invoice-details th { background-color: #f0f0f0; font-weight: bold; }\n                            .total { font-size: 1.2em; font-weight: bold; margin-top: 15px; text-align: right; }\n                            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 0.9em; color: #666; }\n                            .button { display: inline-block; padding: 12px 24px; background-color: #0066cc; color: white; text-decoration: none; border-radius: 4px; margin: 15px 0; }\n                        </style>\n                    </head>\n                    <body>\n                        <div class=\"header\">\n                            <h1>Stadtwerke W\u00fclfrath</h1>\n                            <p>Ihre Rechnung f\u00fcr {{order.products.name}}</p>\n                        </div>\n                        \n                        <div class=\"content\">\n                            <h2>Sehr geehrte Damen und Herren,</h2>\n                            \n                            <p>vielen Dank f\u00fcr Ihr Vertrauen in die Stadtwerke W\u00fclfrath. Anbei erhalten Sie Ihre erste Rechnung f\u00fcr den von Ihnen gew\u00e4hlten Tarif.</p>\n                            \n                            <div class=\"invoice-box\">\n                                <h3>Rechnungsdetails</h3>\n                                <p><strong>Rechnungsnummer:</strong> R-{{order._id}}-001</p>\n                                <p><strong>Rechnungsdatum:</strong> {{_now | date: 'DD.MM.YYYY'}}</p>\n                                <p><strong>Kundennummer:</strong> {{order._relations.contacts._id}}</p>\n                                <p><strong>Vertragsnummer:</strong> {{order._title}}</p>\n                                <p><strong>Lieferzeitraum:</strong> {{order.delivery_date | date: 'DD.MM.YYYY'}} - {{order.delivery_date | date_add: 1, 'month' | date: 'DD.MM.YYYY'}}</p>\n                            </div>\n                            \n                            <div class=\"invoice-details\">\n                                <h3>Leistungs\u00fcbersicht</h3>\n                                <table>\n                                    <thead>\n                                        <tr>\n                                            <th>Position</th>\n                                            <th>Beschreibung</th>\n                                            <th>Menge</th>\n                                            <th>Einzelpreis</th>\n                                            <th>Gesamt</th>\n                                        </tr>\n                                    </thead>\n                                    <tbody>\n                                        <tr>\n                                            <td>1</td>\n                                            <td>{{order.products.name}}<br><small>Tarif f\u00fcr {{order.products.category}}</small></td>\n                                            <td>1 Monat</td>\n                                            <td>{{order.products.price_amount}} {{order.products.price_currency}}</td>\n                                            <td>{{order.products.price_amount}} {{order.products.price_currency}}</td>\n                                        </tr>\n                                        <tr>\n                                            <td>2</td>\n                                            <td>Grundgeb\u00fchr</td>\n                                            <td>1 Monat</td>\n                                            <td>{{order.base_fee | default: '9.90'}} EUR</td>\n                                            <td>{{order.base_fee | default: '9.90'}} EUR</td>\n                                        </tr>\n                                    </tbody>\n                                </table>\n                                \n                                <div class=\"total\">\n                                    <p>Zwischensumme: {{order.total_amount | default: order.products.price_amount}} EUR</p>\n                                    <p>MwSt. (19%): {{order.total_amount | default: order.products.price_amount | multiply: 0.19 | round: 2}} EUR</p>\n                                    <p style=\"font-size: 1.3em; color: #0066cc;\">\n                                        <strong>Gesamtbetrag: {{order.total_amount | default: order.products.price_amount | multiply: 1.19 | round: 2}} EUR</strong>\n                                    </p>\n                                </div>\n                            </div>\n                            \n                            <div style=\"margin: 30px 0;\">\n                                <h3>\ud83d\udcb3 Zahlungsinformationen</h3>\n                                <p><strong>Zahlungsart:</strong> SEPA-Lastschrift</p>\n                                <p><strong>F\u00e4lligkeitsdatum:</strong> {{_now | date_add: 14, 'days' | date: 'DD.MM.YYYY'}}</p>\n                                <p>Der Betrag wird automatisch von Ihrem hinterlegten Konto eingezogen.</p>\n                            </div>\n                            \n                            <div style=\"background-color: #e8f4f8; padding: 15px; border-left: 4px solid #0066cc; margin: 20px 0;\">\n                                <h4>\ud83d\udcf1 Online-Kundenportal</h4>\n                                <p>Verwalten Sie Ihre Rechnungen und Vertr\u00e4ge bequem online:</p>\n                                <a href=\"https://portal.stadtwerke-wuelfrath.de/invoices/{{order._id}}\" class=\"button\">\n                                    Rechnung im Portal ansehen\n                                </a>\n                            </div>\n                            \n                            <div class=\"footer\">\n                                <h4>Kontakt & Support</h4>\n                                <p>\n                                    <strong>Stadtwerke W\u00fclfrath</strong><br>\n                                    Wilhelmstra\u00dfe 60, 42489 W\u00fclfrath<br>\n                                    Telefon: 02058 / 89 00<br>\n                                    E-Mail: <a href=\"mailto:service@stadtwerke-wuelfrath.de\">service@stadtwerke-wuelfrath.de</a><br>\n                                    Web: <a href=\"https://www.stadtwerke-wuelfrath.de\">www.stadtwerke-wuelfrath.de</a>\n                                </p>\n                                \n                                <p style=\"margin-top: 20px; font-size: 0.85em; color: #888;\">\n                                    <strong>Gesch\u00e4ftsf\u00fchrung:</strong> Max Mustermann<br>\n                                    <strong>Handelsregister:</strong> HRB 12345, Amtsgericht Wuppertal<br>\n                                    <strong>USt-IdNr.:</strong> DE123456789<br>\n                                    <strong>Steuer-Nr.:</strong> 123/4567/8901\n                                </p>\n                                \n                                <p style=\"margin-top: 20px; font-size: 0.8em; color: #999;\">\n                                    Dies ist eine automatisch generierte E-Mail. Bei Fragen zu Ihrer Rechnung \n                                    kontaktieren Sie bitte unseren Kundenservice.\n                                </p>\n                            </div>\n                        </div>\n                    </body>\n                    </html>\n                ",
+        "language_code": "de",
+        "attach_documents": true
+      },
+      "created_automatically": false
+    }
+  ],
+  "id": "76918838-eedd-48ef-8990-ff813a8db4a4",
+  "created_at": "2025-12-04T09:00:29.172Z",
+  "updated_at": "2025-12-04T09:00:29.172Z",
+  "runs": 0,
+  "created_by": "api_qBBaGpKDitY07wnfxKQ9q",
+  "last_updated_by": "api_qBBaGpKDitY07wnfxKQ9q"
+}
